@@ -1,4 +1,4 @@
-package samplerest
+package blockchain
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 
 func Plugin(ctx context.Context) *plugin.Plugin {
 	p := &plugin.Plugin{
-		Name:             "steampipe-plugin-samplerest",
+		Name:             "steampipe-plugin-blockchain",
 		DefaultTransform: transform.FromGo().NullIfZero(),
 		ConnectionConfigSchema: &plugin.ConnectionConfigSchema{
 			NewInstance: ConfigInstance,
 			Schema:      ConfigSchema,
 		},
 		TableMap: map[string]*plugin.Table{
-			"samplerest_one_model": tableSampleRESTOneModel(),
+			"blockchain_wallet": tableBlockchainWallet(),
 		},
 	}
 	return p

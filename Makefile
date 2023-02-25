@@ -1,3 +1,3 @@
 install:
-	go build -o ~/.steampipe/plugins/hub.steampipe.io/plugins/jreyesr/samplerest@latest/steampipe-plugin-samplerest.plugin *.go
+	go build -o ~/.steampipe/plugins/hub.steampipe.io/plugins/jreyesr/blockchain@latest/steampipe-plugin-blockchain.plugin *.go
 

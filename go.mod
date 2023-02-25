@@ -1,4 +1,4 @@
-module github.com/jreyesr/steampipe-plugin-samplerest
+module github.com/jreyesr/steampipe-plugin-blockchain
 
 go 1.20
 
