@@ -1,21 +1,35 @@
-# Steampipe plugin for Blockchain.com
+# Steampipe plugin for BTC.com
 
-This is a [Steampipe](https://steampipe.io) plugin that interfaces with the [Blockchain.com](https://blockchain.com) API and returns information about Bitcoin wallets and their transactions.
+This is a [Steampipe](https://steampipe.io) plugin that interfaces with the [BTC.com](https://btc.com) API and returns information about Bitcoin wallets and their transactions.
+
+## Configuration
+
+No configuration is required to use this plugin. Copy the `config/blockchain.spc` file to the Steampipe `config` directory.
 
 ## Usage
 
-- [ ] For each table that you want to expose via SQL:
-    - [ ] Copy the `samplerest/table_samplerest_one_model.go` file
-    - [ ] Rename it to describe the service (instead of `samplerest`) and the entity listed (instead of `one_model`). For example, `table_github_repository`
-    - [ ] Change the `Name` and `Description`
-    - [ ] If your model doesn't support searching to return a subset of items, delete the `List.KeyColumns` field, and any other places marked with `Delete if your API doesn't suport searching over all instances`
-    - [ ] Add/edit all column names types and descriptions in `Columns` to match whatever is exposed by the API. The `Name` field will be seen by SQL, and the `Transform` field is used to match the objects that are returned by the `List` and `Get` functions
-    - [ ] Rename the `OneModel` struct, and edit it to match the data exposed by the API. The field names should match with the names passed to the `Columns.Transform` configs above
-    - [ ] Edit the `listOneModel` function to contact the API and get the results. You have available the `config` var, which holds API credentials, and possibly the `realQueryString` and/or `realQueryJson` variables, for filtering
-    - [ ] Complete the `listOneModel` function to make it return all data returned by the API
-    - [ ] Edit the `getOneModel` function to contact the API and get a single result. You have available the `config` var, which holds API credentials, and the `id` var, which holds the ID of the single object
-    - [ ] Complete the `getOneModel` function to make it return the data of a single item
-    - [ ] Rename the `listOneModel` and `getOneModel` functions to something that matches the actual objects. For example, `listRepository` and `getRepository` for the file `table_github_repository.go`
+> **NOTE:** This examples use the wallet `1MusKqjbk497v4Jf1bkgSpKb4aUhjzfoqA`. This wallet was found on the [Bitcoin Abuse Database](https://www.bitcoinabuse.com), so it may be involved in shady operations! Indeed, it's reported multiple times as a "cryptocurrency giveaway scam".  
+Further muddying the waters, the reports themselves look like Platinum A+ Certified Spam (TM) too, advertising "bitcoin recovery services", soooo...  
+In other words, treat this wallet address with caution. It may be completely innocent, or it may be evil. Don't just go around sending it money because it appeared on these examples.  
+The report is at <https://www.bitcoinabuse.com/reports/1MusKqjbk497v4Jf1bkgSpKb4aUhjzfoqA>
+
+List details about a wallet:
+
+```sql
+select * from blockchain_wallet where address='1MusKqjbk497v4Jf1bkgSpKb4aUhjzfoqA'
+```
+
+List all transactions that involve a certain account:
+
+```sql
+select * from blockchain_transaction where wallet='1MusKqjbk497v4Jf1bkgSpKb4aUhjzfoqA' order by time desc
+```
+
+List details for a single transaction:
+
+```sql
+select * from blockchain_transaction where hash='c15459fc73e0d6c647cddc003beab6241475c479ed45dc7ae3743164f5cbd100'
+```
 
 ## Testing
 

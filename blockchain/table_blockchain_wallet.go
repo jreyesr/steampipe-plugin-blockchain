@@ -12,10 +12,11 @@ func tableBlockchainWallet() *plugin.Table {
 	return &plugin.Table{
 		Name:        "blockchain_wallet",
 		Description: "Returns information about Bitcoin wallets (also known as addresses)",
-		// There is no List config, since you will never list all Bitcoin wallets...
+		// There is no List config, since you will never ever list all Bitcoin wallets...
 		Get: &plugin.GetConfig{
-			KeyColumns: plugin.SingleColumn("address"),
-			Hydrate:    getWallet,
+			KeyColumns:     plugin.SingleColumn("address"),
+			Hydrate:        getWallet,
+			MaxConcurrency: 1,
 		},
 		Columns: []*plugin.Column{
 			{Name: "address", Type: proto.ColumnType_STRING, Transform: transform.FromField("Address"), Description: "Wallet address, in the Base58 format"},
@@ -37,10 +38,10 @@ func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) 
 	address := quals["address"].GetStringValue()
 	plugin.Logger(ctx).Warn("getWallet", "address", address)
 
-	client := BlockchainClient{}
+	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
 	walletInfo, err := client.GetWalletInfo(address)
-	plugin.Logger(ctx).Warn("getWallet", "res", walletInfo, "err", err)
+	plugin.Logger(ctx).Debug("getWallet", "res", walletInfo, "err", err)
 	if err != nil {
 		return nil, err
 	}

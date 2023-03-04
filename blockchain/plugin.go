@@ -11,12 +11,9 @@ func Plugin(ctx context.Context) *plugin.Plugin {
 	p := &plugin.Plugin{
 		Name:             "steampipe-plugin-blockchain",
 		DefaultTransform: transform.FromGo().NullIfZero(),
-		ConnectionConfigSchema: &plugin.ConnectionConfigSchema{
-			NewInstance: ConfigInstance,
-			Schema:      ConfigSchema,
-		},
 		TableMap: map[string]*plugin.Table{
-			"blockchain_wallet": tableBlockchainWallet(),
+			"blockchain_wallet":      tableBlockchainWallet(),
+			"blockchain_transaction": tableBlockchainTransaction(),
 		},
 	}
 	return p
