@@ -98,7 +98,6 @@ type TransactionInfo struct {
 	OutputsCount int       `json:"outputs_count"`
 	OutputsValue int       `json:"outputs_value"`
 	Balance      int       `json:"balance_diff"`
-	Wallet       string    `json:"-"` // This will be set to equal the incoming wallet address
 
 	Inputs  []map[string]any `json:"inputs"`
 	Outputs []map[string]any `json:"outputs"`
@@ -111,8 +110,8 @@ func (ti *TransactionInfo) FillTime() {
 
 func (i TransactionInfo) String() string {
 	return fmt.Sprintf(
-		"TransactionInfo{hash=%s,value=%d fee/%d balance,time=%s,wallet=%s}",
-		i.Hash, i.Fee, i.Balance, i.Time, i.Wallet,
+		"TransactionInfo{hash=%s,value=%d fee/%d balance,time=%s}",
+		i.Hash, i.Fee, i.Balance, i.Time,
 	)
 }
 
@@ -138,10 +137,9 @@ func (c BlockchainClient) GetTransactionsForWallet(address string, page int) ([]
 		return make([]TransactionInfo, 0), fmt.Errorf("%s", data.Message)
 	}
 
-	// Manually set the .Wallet field to the searched value
+	// Manually parse the transaction time
 	// NOTE Don't iterate over the value! range creates a copy of it, and we need the original
 	for i := range data.Data.Items {
-		data.Data.Items[i].Wallet = address
 		data.Data.Items[i].FillTime()
 	}
 

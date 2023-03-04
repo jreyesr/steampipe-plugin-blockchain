@@ -13,7 +13,7 @@ func tableBlockchainTransaction() *plugin.Table {
 	return &plugin.Table{
 		Name:        "blockchain_transaction",
 		Description: "Returns information about Bitcoin transactions",
-		// There is no List config, since you will never list all Bitcoin transactions...
+		// The List config requires a search key, since you will never list all Bitcoin transactions...
 		List: &plugin.ListConfig{
 			KeyColumns: plugin.SingleColumn("wallet"),
 			Hydrate:    listTransactions,
@@ -37,7 +37,7 @@ func tableBlockchainTransaction() *plugin.Table {
 			{Name: "outputs", Type: proto.ColumnType_JSON, Transform: transform.FromField("Outputs"), Description: "Data about the outputs from the transaction: wallets, value sent to each, transaction that spent the funds"},
 
 			// Search fields
-			{Name: "wallet", Type: proto.ColumnType_STRING, Transform: transform.FromField("Wallet"), Description: "Search field to search transactions by wallet. Only set when searching transactions by wallet."},
+			{Name: "wallet", Type: proto.ColumnType_STRING, Transform: transform.FromQual("wallet"), Description: "Search field to search transactions by wallet. Only set when searching transactions by wallet."},
 			{Name: "wallet_balance", Type: proto.ColumnType_INT, Transform: transform.FromField("Balance"), Description: "If searching by a wallet, total amount involved in the transaction FROM THE POINT OF VIEW OF THE WALLET, in satoshis (1e-8 BTC). Only set when searching transactions by wallet."},
 		},
 	}
@@ -51,7 +51,7 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 	wallet := quals["wallet"].GetStringValue()
 	plugin.Logger(ctx).Warn("listTransactions", "wallet", wallet)
 
-	client := BlockchainClient{}
+	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
 	page := 1 // Pagination for this API starts at 1!
 	for {     // Run over all pages until we get an empty one, that means we're done
@@ -91,7 +91,7 @@ func getTransaction(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateD
 	hash := quals["hash"].GetStringValue()
 	plugin.Logger(ctx).Warn("getTransaction", "hash", hash)
 
-	client := BlockchainClient{}
+	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
 	txInfo, err := client.GetTransaction(hash)
 	plugin.Logger(ctx).Debug("getTransaction", "res", txInfo, "err", err)
