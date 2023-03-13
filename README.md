@@ -36,3 +36,9 @@ select * from blockchain_transaction where hash='c15459fc73e0d6c647cddc003beab62
 Run `make`, then run `steampipe query`. Run `.inspect` inside of it to ensure that the plugin is loaded.
 
 Alternatively, run `go build -o ~/.steampipe/plugins/hub.steampipe.io/plugins/jreyesr/blockchain@latest/steampipe-plugin-blockchain.plugin *.go`.
+
+## Dashboard
+
+There is a dashboard that can be used to explore Bitcoin wallets. You input a wallet address in the text combobox at the top, press Enter, and then wait until the widgets below get populated.
+
+To show the wallet, run `cd mod` and `steampipe dashboard`, then choose the dashboard with title Single Wallet Monitor Dashboard.
