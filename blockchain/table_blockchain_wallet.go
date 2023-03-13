@@ -40,7 +40,15 @@ func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) 
 
 	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
-	walletInfo, err := client.GetWalletInfo(address)
+	getWalletInfo := func(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+		return client.GetWalletInfo(address)
+	}
+	walletInfo, err := plugin.RetryHydrate(ctx, d, h, getWalletInfo, &plugin.RetryConfig{
+		ShouldRetryErrorFunc: ShouldRetryBlockchainError,
+		MaxAttempts:          3,
+		RetryInterval:        1000,
+		BackoffAlgorithm:     "Constant",
+	})
 	plugin.Logger(ctx).Debug("getWallet", "res", walletInfo, "err", err)
 	if err != nil {
 		return nil, err

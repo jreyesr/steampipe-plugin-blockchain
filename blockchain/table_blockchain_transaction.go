@@ -45,7 +45,6 @@ func tableBlockchainTransaction() *plugin.Table {
 
 func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
 	plugin.Logger(ctx).Warn("listTransactions")
-
 	quals := d.EqualsQuals
 	plugin.Logger(ctx).Warn("listTransactions", "quals", quals)
 	wallet := quals["wallet"].GetStringValue()
@@ -54,9 +53,19 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
 	page := 1 // Pagination for this API starts at 1!
-	for {     // Run over all pages until we get an empty one, that means we're done
-		transactions, err := client.GetTransactionsForWallet(wallet, page)
-		plugin.Logger(ctx).Debug("listTransactions", "res", transactions, "err", err)
+	getTransactionsPage := func(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+		return client.GetTransactionsForWallet(wallet, page)
+	}
+	retryConfig := &plugin.RetryConfig{
+		ShouldRetryErrorFunc: ShouldRetryBlockchainError,
+		MaxAttempts:          3,
+		RetryInterval:        1000,
+		BackoffAlgorithm:     "Constant",
+	}
+
+	for { // Run over all pages until we get an empty one, that means we're done
+		transactionsGeneric, err := plugin.RetryHydrate(ctx, d, h, getTransactionsPage, retryConfig)
+		plugin.Logger(ctx).Debug("listTransactions", "res", transactionsGeneric, "err", err)
 
 		if err != nil {
 			plugin.Logger(ctx).Error(fmt.Sprintf(
@@ -65,6 +74,7 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 			)
 			return nil, err
 		}
+		transactions := transactionsGeneric.([]TransactionInfo)
 
 		for _, tx := range transactions {
 			d.StreamListItem(ctx, tx)
@@ -93,7 +103,15 @@ func getTransaction(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateD
 
 	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
-	txInfo, err := client.GetTransaction(hash)
+	getTransaction := func(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+		return client.GetTransaction(hash)
+	}
+	txInfo, err := plugin.RetryHydrate(ctx, d, h, getTransaction, &plugin.RetryConfig{
+		ShouldRetryErrorFunc: ShouldRetryBlockchainError,
+		MaxAttempts:          3,
+		RetryInterval:        1000,
+		BackoffAlgorithm:     "Constant",
+	})
 	plugin.Logger(ctx).Debug("getTransaction", "res", txInfo, "err", err)
 	if err != nil {
 		return nil, err

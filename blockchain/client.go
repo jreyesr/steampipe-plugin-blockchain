@@ -74,6 +74,10 @@ func (c BlockchainClient) GetWalletInfo(address string) (WalletInfo, error) {
 	}
 	body, _ := io.ReadAll(res.Body)
 	c.logger.Debug("getWallet", "statusCode", res.StatusCode, "response", string(body))
+	if string(body) == "Don't abuse the API. Please contact support@btcm.group\n" {
+		c.logger.Debug("getWalletRateLimit", "url", url)
+		return WalletInfo{}, RateLimitError{url}
+	}
 
 	var data ApiWrapper[WalletInfo]
 	if err := json.Unmarshal(body, &data); err != nil {
@@ -118,7 +122,7 @@ func (i TransactionInfo) String() string {
 // Returns a page of results for transactions that involve a certain wallet, identified by its Base58 address
 func (c BlockchainClient) GetTransactionsForWallet(address string, page int) ([]TransactionInfo, error) {
 	url := fmt.Sprintf("%s/address/%s/tx?page=%d", API_BASE_URL, address, page)
-
+	c.logger.Debug("GetTransactionsForWallet", "url", url)
 	res, err := http.Get(url)
 	if err != nil {
 		return make([]TransactionInfo, 0), err
@@ -128,6 +132,10 @@ func (c BlockchainClient) GetTransactionsForWallet(address string, page int) ([]
 		return make([]TransactionInfo, 0), fmt.Errorf("GetTransactionsForWallet - %s", res.Status)
 	}
 	body, _ := io.ReadAll(res.Body)
+	if string(body) == "Don't abuse the API. Please contact support@btcm.group\n" {
+		c.logger.Debug("getWalletRateLimit", "url", url)
+		return make([]TransactionInfo, 0), RateLimitError{url}
+	}
 
 	var data ApiWrapper[PaginatedWrapper[TransactionInfo]]
 	if err := json.Unmarshal(body, &data); err != nil {
@@ -159,6 +167,10 @@ func (c BlockchainClient) GetTransaction(hash string) (TransactionInfo, error) {
 		return TransactionInfo{}, fmt.Errorf("GetTransaction - %s", res.Status)
 	}
 	body, _ := io.ReadAll(res.Body)
+	if string(body) == "Don't abuse the API. Please contact support@btcm.group\n" {
+		c.logger.Debug("getWalletRateLimit", "url", url)
+		return TransactionInfo{}, RateLimitError{url}
+	}
 
 	var data ApiWrapper[TransactionInfo]
 	if err := json.Unmarshal(body, &data); err != nil {
