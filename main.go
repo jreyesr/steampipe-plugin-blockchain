@@ -6,6 +6,8 @@ import (
 )
 
 func main() {
+	blockchain.InitMetrics()
+
 	plugin.Serve(&plugin.ServeOpts{
 		PluginFunc: blockchain.Plugin})
 }

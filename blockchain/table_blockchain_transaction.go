@@ -7,6 +7,7 @@ import (
 	"github.com/turbot/steampipe-plugin-sdk/v5/grpc/proto"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin/transform"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func tableBlockchainTransaction() *plugin.Table {
@@ -44,6 +45,8 @@ func tableBlockchainTransaction() *plugin.Table {
 }
 
 func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+	requestCounter.Add(ctx, 1, attribute.String("op", "listTransactions"))
+
 	plugin.Logger(ctx).Warn("listTransactions")
 	quals := d.EqualsQuals
 	plugin.Logger(ctx).Warn("listTransactions", "quals", quals)
@@ -78,6 +81,7 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 
 		for _, tx := range transactions {
 			d.StreamListItem(ctx, tx)
+			rowsCounter.Add(ctx, 1, attribute.String("op", "listTransactions"))
 		}
 
 		if len(transactions) == 0 {
