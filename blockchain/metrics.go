@@ -12,6 +12,12 @@ var rowsCounter syncint64.Counter
 
 func InitMetrics() {
 	meter := global.Meter("steampipe_plugin_blockchain")
-	requestCounter, _ = meter.SyncInt64().Counter("steampipe_plugin_blockchain.requests.count", instrument.WithUnit(unit.Dimensionless))
-	rowsCounter, _ = meter.SyncInt64().Counter("steampipe_plugin_blockchain.rows.count", instrument.WithUnit(unit.Dimensionless))
+	requestCounter, _ = meter.SyncInt64().Counter(
+		"steampipe_plugin_blockchain.requests.count",
+		instrument.WithDescription("A counter of requests made to the Blockchain API"),
+		instrument.WithUnit(unit.Dimensionless))
+	rowsCounter, _ = meter.SyncInt64().Counter(
+		"steampipe_plugin_blockchain.rows.count",
+		instrument.WithDescription("A counter of rows returned across all API calls"),
+		instrument.WithUnit(unit.Dimensionless))
 }
