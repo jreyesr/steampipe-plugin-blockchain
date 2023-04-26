@@ -18,7 +18,7 @@ func tableBlockchainWallet() *plugin.Table {
 		// There is no List config, since you will never ever list all Bitcoin wallets...
 		Get: &plugin.GetConfig{
 			KeyColumns:     plugin.SingleColumn("address"),
-			Hydrate:        getWallet,
+			Hydrate:        wrapWithTimer(getWallet),
 			MaxConcurrency: 1,
 		},
 		Columns: []*plugin.Column{
@@ -34,7 +34,6 @@ func tableBlockchainWallet() *plugin.Table {
 }
 
 func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-	requestCounter.Add(ctx, 1, attribute.String("op", "getWallet"))
 	plugin.Logger(ctx).Warn("getWallet")
 
 	quals := d.EqualsQuals

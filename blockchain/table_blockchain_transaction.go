@@ -21,11 +21,11 @@ func tableBlockchainTransaction() *plugin.Table {
 		// The List config requires a search key, since you will never list all Bitcoin transactions...
 		List: &plugin.ListConfig{
 			KeyColumns: plugin.SingleColumn("wallet"),
-			Hydrate:    listTransactions,
+			Hydrate:    wrapWithTimer(listTransactions),
 		},
 		Get: &plugin.GetConfig{
 			KeyColumns: plugin.SingleColumn("hash"),
-			Hydrate:    getTransaction,
+			Hydrate:    wrapWithTimer(getTransaction),
 		},
 		Columns: []*plugin.Column{
 			{Name: "hash", Type: proto.ColumnType_STRING, Transform: transform.FromField("Hash"), Description: "Transaction hash, unique across all transactions in the blockchain"},
@@ -49,8 +49,6 @@ func tableBlockchainTransaction() *plugin.Table {
 }
 
 func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-	requestCounter.Add(ctx, 1, attribute.String("op", "listTransactions"))
-
 	plugin.Logger(ctx).Warn("listTransactions")
 	quals := d.EqualsQuals
 	plugin.Logger(ctx).Warn("listTransactions", "quals", quals)
@@ -124,7 +122,6 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 }
 
 func getTransaction(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-	requestCounter.Add(ctx, 1, attribute.String("op", "getTransaction"))
 	plugin.Logger(ctx).Warn("getTransaction")
 
 	quals := d.EqualsQuals
