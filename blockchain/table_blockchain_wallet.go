@@ -6,6 +6,9 @@ import (
 	"github.com/turbot/steampipe-plugin-sdk/v5/grpc/proto"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin/transform"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func tableBlockchainWallet() *plugin.Table {
@@ -31,6 +34,7 @@ func tableBlockchainWallet() *plugin.Table {
 }
 
 func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+	requestCounter.Add(ctx, 1, attribute.String("op", "getWallet"))
 	plugin.Logger(ctx).Warn("getWallet")
 
 	quals := d.EqualsQuals
@@ -41,7 +45,19 @@ func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) 
 	client := BlockchainClient{logger: plugin.Logger(ctx)}
 
 	getWalletInfo := func(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-		return client.GetWalletInfo(address)
+		data, err := client.GetWalletInfo(address)
+		if err != nil {
+			span := trace.SpanFromContext(ctx)
+			span.SetStatus(codes.Error, err.Error())
+
+			span.AddEvent(
+				"error",
+				trace.WithAttributes(
+					attribute.String("wallet", address),
+				),
+			)
+		}
+		return data, err
 	}
 	walletInfo, err := plugin.RetryHydrate(ctx, d, h, getWalletInfo, &plugin.RetryConfig{
 		ShouldRetryErrorFunc: ShouldRetryBlockchainError,
@@ -51,8 +67,12 @@ func getWallet(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) 
 	})
 	plugin.Logger(ctx).Debug("getWallet", "res", walletInfo, "err", err)
 	if err != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return nil, err
 	}
 
+	rowsCounter.Add(ctx, 1, attribute.String("op", "getWallet"))
 	return walletInfo, nil
 }

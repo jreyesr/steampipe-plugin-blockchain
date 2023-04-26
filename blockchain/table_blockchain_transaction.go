@@ -3,11 +3,15 @@ package blockchain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/turbot/steampipe-plugin-sdk/v5/grpc/proto"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin/transform"
+	"github.com/turbot/steampipe-plugin-sdk/v5/telemetry"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func tableBlockchainTransaction() *plugin.Table {
@@ -57,7 +61,20 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 
 	page := 1 // Pagination for this API starts at 1!
 	getTransactionsPage := func(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-		return client.GetTransactionsForWallet(wallet, page)
+		data, err := client.GetTransactionsForWallet(wallet, page)
+		if err != nil {
+			span := trace.SpanFromContext(ctx)
+			span.SetStatus(codes.Error, err.Error())
+
+			span.AddEvent(
+				"error",
+				trace.WithAttributes(
+					attribute.String("wallet", wallet),
+					attribute.Int("page", page),
+				),
+			)
+		}
+		return data, err
 	}
 	retryConfig := &plugin.RetryConfig{
 		ShouldRetryErrorFunc: ShouldRetryBlockchainError,
@@ -65,12 +82,21 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 		RetryInterval:        1000,
 		BackoffAlgorithm:     "Constant",
 	}
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(attribute.Int64("limit", d.QueryContext.GetLimit()))
+
+	_, parentSpan := telemetry.StartSpan(ctx, d.Table.Plugin.Name, "Custom Work")
+	time.Sleep(1100 * time.Millisecond)
+	parentSpan.End()
 
 	for { // Run over all pages until we get an empty one, that means we're done
 		transactionsGeneric, err := plugin.RetryHydrate(ctx, d, h, getTransactionsPage, retryConfig)
 		plugin.Logger(ctx).Debug("listTransactions", "res", transactionsGeneric, "err", err)
 
 		if err != nil {
+			span := trace.SpanFromContext(ctx)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			plugin.Logger(ctx).Error(fmt.Sprintf(
 				"Unable to fetch transactions for wallet %s at offset %d: %s",
 				wallet, page, err),
@@ -98,6 +124,7 @@ func listTransactions(ctx context.Context, d *plugin.QueryData, h *plugin.Hydrat
 }
 
 func getTransaction(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+	requestCounter.Add(ctx, 1, attribute.String("op", "getTransaction"))
 	plugin.Logger(ctx).Warn("getTransaction")
 
 	quals := d.EqualsQuals
@@ -118,8 +145,12 @@ func getTransaction(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateD
 	})
 	plugin.Logger(ctx).Debug("getTransaction", "res", txInfo, "err", err)
 	if err != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return nil, err
 	}
 
+	rowsCounter.Add(ctx, 1, attribute.String("op", "getTransaction"))
 	return txInfo, nil
 }
